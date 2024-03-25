@@ -1,0 +1,228 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Step Functions with Lambda Trigger
+
+Parameters:
+  CloudService:
+    Type: String
+    Description: The cloud service to trigger the corresponding Lambda function (e.g., s3, lambda, ec2)
+  ServiceName:
+    Type: String
+    Description: The name of the service
+  Region:
+    Type: String
+    Description: The AWS region
+
+Resources:
+  S3LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt S3LambdaExecutionRole.Arn
+      Runtime: nodejs14.x
+      Code:
+        S3Bucket: YOUR_BUCKET_NAME
+        S3Key: s3-lambda.zip
+      Timeout: 60
+
+  LambdaLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaLambdaExecutionRole.Arn
+      Runtime: nodejs14.x
+      Code:
+        S3Bucket: YOUR_BUCKET_NAME
+        S3Key: lambda-lambda.zip
+      Timeout: 60
+
+  # EC2LambdaFunction:
+  #   Type: AWS::Lambda::Function
+  #   Properties:
+  #     Handler: index.handler
+  #     Role: !GetAtt EC2LambdaExecutionRole.Arn
+  #     Runtime: nodejs14.x
+  #     Code:
+  #       S3Bucket: YOUR_BUCKET_NAME
+  #       S3Key: ec2-lambda.zip
+  #     Timeout: 60
+
+  S3LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3LambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: arn:aws:s3:::YOUR_BUCKET_NAME/*
+
+  LambdaLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+              # Add additional permissions as needed
+
+  # EC2LambdaExecutionRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service: lambda.amazonaws.com
+  #           Action: sts:AssumeRole
+  #     Policies:
+  #       - PolicyName: EC2LambdaPolicy
+  #         PolicyDocument:
+  #           Version: '2012-10-17'
+  #           Statement:
+  #             - Effect: Allow
+  #               Action:
+  #                 - logs:CreateLogGroup
+  #                 - logs:CreateLogStream
+  #                 - logs:PutLogEvents
+  #               Resource: arn:aws:logs:*:*:*
+
+  StepFunctionStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: StepFunctionStateMachine
+      RoleArn: !GetAtt StepFunctionRole.Arn
+      DefinitionString: !Sub |
+        {
+          "Comment": "A simple AWS Step Functions state machine that triggers Lambda based on cloud service",
+          "StartAt": "InvokeLambda",
+          "States": {
+            "InvokeLambda": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": {
+                  "Fn::If": [
+                    "IsS3Service",
+                    "YOUR_S3_LAMBDA_ARN",
+                    {
+                      "Fn::If": [
+                        "IsLambdaService",
+                        "YOUR_LAMBDA_LAMBDA_ARN",
+                        {
+                          "Fn::If": [
+                            "IsEC2Service",
+                            "YOUR_EC2_LAMBDA_ARN",
+                            { "Error": "ServiceNotFound" }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "Payload": {
+                  "region.$": "$.Region",
+                  "name.$": "$.ServiceName"
+                }
+              },
+              "Next": "ServiceNotFound"
+            },
+            "ServiceNotFound": {
+              "Type": "Fail",
+              "Cause": "Service not found",
+              "Error": "ServiceNotFound"
+            }
+          }
+        }
+      Fn::If:
+        IsS3Service:
+          - S3ServiceCheck
+          - Fn::If:
+              IsLambdaService:
+                - LambdaServiceCheck
+                - Fn::If:
+                    IsEC2Service:
+                      - EC2ServiceCheck
+                      - ServiceNotFound
+      IsS3Service:
+        Fn::Equals:
+          - !Ref CloudService
+          - "s3"
+      S3ServiceCheck:
+        Fn::If:
+          IsServiceFound:
+            - "InvokeLambda"
+            - "ServiceNotFound"
+      IsLambdaService:
+        Fn::Equals:
+          - !Ref CloudService
+          - "lambda"
+      LambdaServiceCheck:
+        Fn::If:
+          IsServiceFound:
+            - "InvokeLambda"
+            - "ServiceNotFound"
+      IsEC2Service:
+        Fn::Equals:
+          - !Ref CloudService
+          - "ec2"
+      EC2ServiceCheck:
+        Fn::If:
+          IsServiceFound:
+            - "InvokeLambda"
+            - "ServiceNotFound"
+      IsServiceFound:
+        Fn::Not:
+          - Fn::Equals:
+              - !Ref CloudService
+              - "ServiceNotFound"
+      ServiceNotFound:
+        Fn::Equals:
+          - !GetStateToken "ServiceNotFound"
+          - !GetFailedToken "ServiceNotFound"
+
+  StepFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionExecutionPolicy
+          PolicyDocument:
+            Version:

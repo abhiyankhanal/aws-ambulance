@@ -1,84 +1,64 @@
-import { AddPermissionRequest, DeleteEventSourceMappingRequest, Lambda } from "@aws-sdk/client-lambda";
+import { AddPermissionCommand, DeleteEventSourceMappingCommand, LambdaClient, ListEventSourceMappingsCommand, UpdateFunctionConfigurationCommand } from "@aws-sdk/client-lambda";
 import { SharedIniFileCredentials } from "aws-sdk";
 
-import * as readline from "readline";
-
-const IO = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-const askQuestion = async (question: string): Promise<string> => {
-  return new Promise((resolve) =>
-    IO.question(question, (answer) => resolve(answer.trim()))
-  );
-};
-
-const main = async () => {
-  const profile = await askQuestion(
-    "Enter AWS profile name, press enter if default: "
-  );
-  const region = await askQuestion("Enter AWS region, eg: us-east-1: ");
-  const functionName = await askQuestion("Enter the Lambda function name: ");
-
-  const lambda = new Lambda({
-    credentials: new SharedIniFileCredentials({ profile }),
-    region,
+export const handler = async (event: { region: string, lambdaName: string }) => {
+  const { region, lambdaName } = event;
+  const lambdaClient = new LambdaClient({
+    credentials: new SharedIniFileCredentials(), // Using default profile
+    region: region,
   });
 
   try {
-      // Update the execution role policy to deny all actions
-      const rolePolicyParams: AddPermissionRequest = {
-        FunctionName: functionName,
-        StatementId: "DenyAllAccess",
-        Action: "lambda:*",
-        Principal: "*",
-      };
-      await lambda.addPermission(rolePolicyParams);
+    // Update the execution role policy to deny all actions
+    const rolePolicyParams = {
+      FunctionName: lambdaName,
+      StatementId: "DenyAllAccess",
+      Action: "lambda:*",
+      Principal: "*",
+    };
+    await lambdaClient.send(new AddPermissionCommand(rolePolicyParams));
 
+    console.log(`Successfully updated permission of ${lambdaName}.`);
   } catch (error) {
-    console.error(`Error updating permission of ${functionName}:`, error);
+    console.error(`Error updating permission of ${lambdaName}:`, error);
   }
-
 
   try {
     // Remove triggers
     const listTriggersParams = {
-      FunctionName: functionName,
+      FunctionName: lambdaName,
     };
-    const triggers = await lambda.listEventSourceMappings(listTriggersParams);
-    if (triggers.EventSourceMappings){
-    for (const trigger of triggers.EventSourceMappings) {
-      if (trigger.UUID) {
-        const deleteTriggerParams: DeleteEventSourceMappingRequest = {
-          UUID: trigger.UUID,
-        };
-        await lambda.deleteEventSourceMapping(deleteTriggerParams);
-        console.log(`Deleted trigger with UUID ${trigger.UUID}`);
+    const { EventSourceMappings } = await lambdaClient.send(new ListEventSourceMappingsCommand(listTriggersParams));
+    
+    if (EventSourceMappings) {
+      for (const trigger of EventSourceMappings) {
+        if (trigger.UUID) {
+          const deleteTriggerParams = {
+            UUID: trigger.UUID,
+          };
+          await lambdaClient.send(new DeleteEventSourceMappingCommand(deleteTriggerParams));
+          console.log(`Deleted trigger with UUID ${trigger.UUID}`);
+        }
       }
     }
-  }
-
-    console.log(`Successfully removed all triggers from Lambda function ${functionName}.`);
+    
+    console.log(`Successfully removed all triggers from Lambda function ${lambdaName}.`);
   } catch (error) {
-    console.error(`Error removing triggers from Lambda function ${functionName}:`, error);
+    console.error(`Error removing triggers from Lambda function ${lambdaName}:`, error);
   }
 
-  try{  
-  // Modify or remove sensitive information stored as environment variables
+  try {
+    // Modify or remove sensitive information stored as environment variables
     const updateEnvParams = {
-      FunctionName: functionName,
+      FunctionName: lambdaName,
       Environment: {
         Variables: {},
       },
     };
-    await lambda.updateFunctionConfiguration(updateEnvParams);
+    await lambdaClient.send(new UpdateFunctionConfigurationCommand(updateEnvParams));
 
-    console.log(`Successfully denied all access to Lambda function ${functionName}.`);
+    console.log(`Successfully updated environment of Lambda function ${lambdaName}.`);
   } catch (error) {
-    console.error(`Error updating env of ${functionName} lambda`, error);
+    console.error(`Error updating environment of ${lambdaName} lambda`, error);
   }
 };
-
-// Execute main
-main();

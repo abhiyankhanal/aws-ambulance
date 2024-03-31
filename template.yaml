@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  S3LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AWSAmbulanceS3
+      Handler: aws-ambulance-s3/dist/index.handler
+      Runtime: nodejs20.x
+      Policies:
+        - S3FullAccessPolicy: 
+            BucketName: "*"
+  
+  LambdaLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AWSAmbulanceLambda
+      Handler: aws-ambulance-lambda/dist/index.handler
+      Runtime: nodejs20.x
+      Policies:
+         Statement:
+          - Effect: Allow
+            Action:
+              - lambda:*
+            Resource: arn:aws:lambda:*:*:function:*
+            # Resource: "*"
+
+  EC2LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AWSAmbulanceEC2
+      Handler: aws-ambulance-ec2/dist/index.handler
+      Runtime: nodejs20.x
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+              - ec2:*
+            Resource: "*"

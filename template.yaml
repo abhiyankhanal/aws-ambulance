@@ -39,31 +39,14 @@ Resources:
               - ec2:*
             Resource: "*"
 
-  StepFunctionExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: states.amazonaws.com
-            Action: 'sts:AssumeRole'
-      Policies:
-        - PolicyName: StepFunctionExecutionPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - lambda:InvokeFunction
-                Resource:
-                  - !GetAtt S3LambdaFunction.Arn
-                  - !GetAtt LambdaLambdaFunction.Arn
-                  - !GetAtt EC2LambdaFunction.Arn
-
   AWSAmbulanceStepFunction:
-    Type: AWS::StepFunctions::StateMachine
+    Type: AWS::Serverless::StateMachine
     Properties:
-      Definition: ./step-function.json
-      RoleArn: !GetAtt StepFunctionExecutionRole.Arn
+      DefinitionUri: ./step-function.asl.json
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref S3LambdaFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref LambdaLambdaFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref EC2LambdaFunction

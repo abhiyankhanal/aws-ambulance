@@ -6,6 +6,8 @@ export const handler = async (event: { region: string, lambdaName: string }) => 
     region: region,
   });
 
+  console.log('Event here', event.lambdaName);
+
   try {
     // Update the execution role policy to deny all actions
     const rolePolicyParams = {

@@ -16,6 +16,7 @@ const handler = (event) => __awaiter(void 0, void 0, void 0, function* () {
     const lambdaClient = new client_lambda_1.LambdaClient({
         region: region,
     });
+    console.log('Event here', event.lambdaName);
     try {
         // Update the execution role policy to deny all actions
         const rolePolicyParams = {

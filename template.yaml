@@ -43,6 +43,10 @@ Resources:
     Type: AWS::Serverless::StateMachine
     Properties:
       DefinitionUri: ./step-function.asl.json
+      DefinitionSubstitutions:
+        S3LambdaFunctionArn: !GetAtt S3LambdaFunction.Arn
+        LambdaLambdaFunctionArn: !GetAtt LambdaLambdaFunction.Arn
+        EC2LambdaFunctionArn: !GetAtt EC2LambdaFunction.Arn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref S3LambdaFunction

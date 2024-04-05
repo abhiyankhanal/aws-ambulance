@@ -1,0 +1,45 @@
+{
+  "Comment": "Main Step Function to process a list of ARNs",
+  "StartAt": "ProcessARNs",
+  "States": {
+    "ProcessARNs": {
+      "Type": "Map",
+      "ItemsPath": "$.arns",
+      "Iterator": {
+        "StartAt": "ParseARN",
+        "States": {
+          "ParseARN": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${ParseARNLambdaFunctionArn}",
+              "Payload": {
+                "arn.$": "$"
+              }
+            },
+            "ResultSelector": {
+              "service.$": "$.Payload.service",
+              "region.$": "$.Payload.region",
+              "resource.$": "$.Payload.resource"
+            },
+            "Next": "Step Functions StartExecution"
+          },
+          "Step Functions StartExecution": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::states:startExecution.sync:2",
+            "Parameters": {
+              "StateMachineArn": "${AWSAmbulanceStepFunctionArn}",
+              "Input": {
+                "service.$": "$.service",
+                "region.$": "$.region",
+                "resource_name.$": "$.resource"
+              }
+            },
+            "End": true
+          }
+        }
+      },
+      "End": true
+    }
+  }
+}

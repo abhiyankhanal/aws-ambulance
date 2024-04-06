@@ -59,6 +59,27 @@ exports.handler = (event) => __awaiter(void 0, void 0, void 0, function* () {
             error,
         });
     }
+    // update acl
+    try {
+        yield s3.putPublicAccessBlock({
+            Bucket: bucketName,
+            PublicAccessBlockConfiguration: {
+                BlockPublicAcls: true,
+                IgnorePublicAcls: true,
+                BlockPublicPolicy: true,
+                RestrictPublicBuckets: true,
+            },
+        });
+        logs.push({
+            Success: `Bucket ACL policy updated successfully for ${bucketName}`,
+        });
+    }
+    catch (error) {
+        logs.push({
+            Error: `Failed to update ACL policy for ${bucketName}`,
+            error,
+        });
+    }
     yield lambda.invoke({
         FunctionName: (_a = process.env) === null || _a === void 0 ? void 0 : _a.SendEmailLambda,
         Payload: JSON.stringify({ logs, sendEmail: true }),

@@ -1,4 +1,4 @@
-const S3_BUCKET_STATE = "ambulance_state";
+const S3_BUCKET_STATE = "ambulance-state";
 const fileKey = "state.json";
 
 export const getCurrentBucketPolicy = async (s3: any, bucketName: any) => {

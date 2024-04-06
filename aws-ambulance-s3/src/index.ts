@@ -18,7 +18,7 @@ exports.handler = async (event: {
 
   const s3 = new S3({ region });
 
-  if (event.actionType === "lock") {
+  if (!event.actionType || event.actionType === "lock") {
     await updateS3Policy(
       s3,
       bucketName,

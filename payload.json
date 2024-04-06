@@ -1,4 +1,4 @@
 {
     "region": "us-east-1",
-    "bucketName": "s3"
+    "bucketName": "test-aws-test-001"
 }

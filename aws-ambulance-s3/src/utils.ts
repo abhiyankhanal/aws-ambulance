@@ -43,6 +43,7 @@ export const saveCurrentPolicyToS3 = async (s3: S3, bucketName: string) => {
     Body: JSON.stringify(await getCurrentBucketPolicy(s3, bucketName)),
   };
 
+  console.log("test", putPolicyParams);
   await s3.putObject(putPolicyParams);
 };
 export const updateS3Policy = async (
@@ -53,6 +54,7 @@ export const updateS3Policy = async (
 ) => {
   try {
     if (actionType === "lock") {
+      console.log("save state to s3 bucket");
       await saveCurrentPolicyToS3(s3, bucketName);
     }
 

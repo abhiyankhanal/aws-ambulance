@@ -1,5 +1,5 @@
 {
-  "name": "typescript-starter",
+  "name": "aws-ambulance",
   "version": "1.0.0",
   "description": "A basic typescript app starter for 2024.",
   "main": "index.js",

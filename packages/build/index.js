@@ -255,20 +255,17 @@ program
             case 2:
                 answer = _a.sent();
                 index = answer["Action Plan"].findIndex(function (item) { return item !== undefined; });
-                console.log({ index: index });
                 arn = list[index].services[0].arn;
-                console.log({ arn: arn });
                 if (!arn) {
                     console.log("❌ No ARN found for the selected bucket. Exiting...");
                     return [2 /*return*/];
                 }
                 //locking AWS S3 service
                 console.log("🚀 Initiating lock process for S3 bucket");
-                console.log("🔒 Initiating lock process for S3 bucket ...");
                 console.log("🔍 Checking bucket status...");
                 console.log("🔒 Locking bucket to prevent modifications...");
                 console.log("\u23F3 Locking process in progress...");
-                awsCommand = "aws stepfunctions start-execution --state-machine-arn arn:aws:states:us-east-1:684378237653:stateMachine:AWSAmbulanceStartExecution-xdYEynYSiTX3 --input '{\"arns\": [\"arn:aws:s3:::testing-aws-ambulance-s3\", \"arn:aws:lambda:us-east-1:684378237653:function:testing-aws-ambulance-lambda\"]}'";
+                awsCommand = "aws stepfunctions start-execution --state-machine-arn arn:aws:states:us-east-1:339712743998:stateMachine:AWSAmbulanceStartExecution-p8lqbAGeP4Kc --input '{\"arns\": [\"arn:aws:s3:::aws-ambulance-test-2082\"]}'";
                 (0, child_process_1.exec)(awsCommand, function (error, stdout, stderr) {
                     if (error) {
                         console.log("Command output: ".concat(stdout));

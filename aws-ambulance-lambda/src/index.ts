@@ -4,6 +4,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3
 
 export const handler = async (event: {region:string, lambdaName: string }, action?: 'unlock') => {
   const { region, lambdaName } = event;
+  const bucketName = 'lamda-state';
 
   const lambdaClient = new LambdaClient({
     region: region,
@@ -89,7 +90,7 @@ export const handler = async (event: {region:string, lambdaName: string }, actio
       };
 
       const putObjectParams = {
-        Bucket: 'lambda-state',
+        Bucket: bucketName,
         Key: `${lambdaName}_lock_state.json`,
         Body: JSON.stringify(currentState),
       };
@@ -119,7 +120,7 @@ export const handler = async (event: {region:string, lambdaName: string }, actio
   const getStateFromS3 = async () => {
     try {
       const getObjectParams = {
-        Bucket: 'lambda-state',
+        Bucket: bucketName,
         Key: `${lambdaName}_lock_state.json`,
       };
       const data = await s3Client.send(new GetObjectCommand(getObjectParams));

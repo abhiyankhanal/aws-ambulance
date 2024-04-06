@@ -184,7 +184,7 @@ program
     console.log("🔒 Locking bucket to prevent modifications...");
     console.log(`⏳ Locking process in progress...`);
 
-    const awsCommand = `aws stepfunctions start-execution --state-machine-arn arn:aws:states:us-east-1:684378237653:stateMachine:AWSAmbulanceStartExecution-xdYEynYSiTX3 --input '{"arns": ["arn:aws:s3:::testing-aws-ambulance-s3", "arn:aws:lambda:us-east-1:684378237653:function:testing-aws-ambulance-lambda"]}'`;
+    const awsCommand = `aws stepfunctions start-execution --state-machine-arn arn:aws:states:us-east-1:684378237653:stateMachine:AWSAmbulanceStartExecution-xdYEynYSiTX3 --input '{"arns": ["arn:aws:s3:::aws-ambulance-test-1"]}'`;
 
     exec(awsCommand, (error: any, stdout: any, stderr: any) => {
       if (error) {

@@ -6,6 +6,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: AWSAmbulanceS3
+      Timeout: 5
       Handler: aws-ambulance-s3/dist/index.handler
       Runtime: nodejs20.x
       Policies:
@@ -19,6 +20,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: AWSAmbulanceLambda
+      Timeout: 5
       Handler: aws-ambulance-lambda/dist/index.handler
       Runtime: nodejs20.x
       Policies:
@@ -33,6 +35,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: AWSAmbulanceEC2
+      Timeout: 5
       Handler: aws-ambulance-ec2/dist/index.handler
       Runtime: nodejs20.x
       Policies:
@@ -46,6 +49,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: AWSAmbulanceParseARN
+      Timeout: 5
       Handler: aws-ambulance-parse-arn/dist/index.handler
       Runtime: nodejs20.x
       Policies:

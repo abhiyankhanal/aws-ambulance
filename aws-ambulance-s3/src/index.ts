@@ -37,8 +37,8 @@ exports.handler = async (event: { region: string, bucketName: string} ) => {
         CORSRules: [
           {
             AllowedHeaders: [],
-            AllowedMethods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
-            AllowedOrigins: ["*"],
+            AllowedMethods: [],
+            AllowedOrigins: [],
             ExposeHeaders: [],
           },
         ],

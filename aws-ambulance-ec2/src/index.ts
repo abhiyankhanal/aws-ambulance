@@ -1,13 +1,12 @@
 import { S3 } from "@aws-sdk/client-s3";
 
-exports.handler = async (event: { region: string, bucketName: string} ) => {
+exports.handler = async (event: { region: string; bucketName: string }) => {
   const { region, bucketName } = event;
 
+  const logs = [];
+
   if (!region || !bucketName) {
-    return {
-      statusCode: 400,
-      body: "Missing region or bucketName in the event payload",
-    };
+    logs.push({ "Error": "Missing region or bucketName in the event payload" });
   }
 
   const s3 = new S3({ region });
@@ -30,7 +29,13 @@ exports.handler = async (event: { region: string, bucketName: string} ) => {
     };
     await s3.putBucketPolicy(policyParams);
 
+  } catch(error) {
+    logs.push({ "Error": "Failed to update policy params", error });
+  }
+
     // Update CORS Configuration to Deny All
+
+    try {
     const corsParams = {
       Bucket: bucketName,
       CORSConfiguration: {
@@ -44,7 +49,7 @@ exports.handler = async (event: { region: string, bucketName: string} ) => {
         ],
       },
     };
-    await s3.putBucketCors(corsParams);
+    await s3.putBucketCors(corsParams); 
 
     console.log(
       `Updated policy and CORS configuration for bucket ${bucketName}`

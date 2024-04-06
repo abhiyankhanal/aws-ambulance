@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_s3_1 = require("@aws-sdk/client-s3");
 exports.handler = (event) => __awaiter(void 0, void 0, void 0, function* () {
     const { region, bucketName } = event;
-    console.log('Event here', event.bucketName);
     if (!region || !bucketName) {
         return {
             statusCode: 400,

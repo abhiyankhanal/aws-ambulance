@@ -1,13 +1,15 @@
+import { S3 } from "@aws-sdk/client-s3";
+
 const S3_BUCKET_STATE = "ambulance-state";
 const fileKey = "state.json";
 
-export const getCurrentBucketPolicy = async (s3: any, bucketName: any) => {
+export const getCurrentBucketPolicy = async (s3: S3, bucketName: any) => {
   const params = {
     Bucket: bucketName,
   };
 
   try {
-    const data = await s3.getBucketPolicy(params).promise();
+    const data = await s3.getBucketPolicy(params);
     return JSON.parse(data.Policy!);
   } catch (error) {
     console.error(
@@ -17,7 +19,7 @@ export const getCurrentBucketPolicy = async (s3: any, bucketName: any) => {
     return {};
   }
 };
-export const getLastS3PolicyFromState = async (s3: any) => {
+export const getLastS3PolicyFromState = async (s3: S3) => {
   const params: any = {
     Bucket: S3_BUCKET_STATE,
     Key: fileKey,
@@ -34,7 +36,7 @@ export const getLastS3PolicyFromState = async (s3: any) => {
     return {};
   }
 };
-export const saveCurrentPolicyToS3 = async (s3: any, bucketName: string) => {
+export const saveCurrentPolicyToS3 = async (s3: S3, bucketName: string) => {
   const putPolicyParams = {
     Bucket: S3_BUCKET_STATE,
     Key: fileKey,
@@ -44,7 +46,7 @@ export const saveCurrentPolicyToS3 = async (s3: any, bucketName: string) => {
   await s3.putObject(putPolicyParams);
 };
 export const updateS3Policy = async (
-  s3: any,
+  s3: S3,
   bucketName: any,
   policy: any,
   actionType: "lock" | "unlock"
@@ -59,7 +61,7 @@ export const updateS3Policy = async (
       Policy: JSON.stringify(policy),
     };
 
-    await s3.putBucketPolicy(putParams).promise();
+    await s3.putBucketPolicy(putParams);
     console.log(`Access to bucket '${bucketName}' is locked down.`);
   } catch (error) {
     console.log("error", error);

@@ -37,7 +37,7 @@ export const getLastS3PolicyFromState = async (s3: any) => {
 export const saveCurrentPolicyToS3 = async (s3: any, bucketName: string) => {
   const putPolicyParams = {
     Bucket: S3_BUCKET_STATE,
-    Key: "previous-access-policy.json",
+    Key: fileKey,
     Body: JSON.stringify(await getCurrentBucketPolicy(s3, bucketName)),
   };
 
@@ -61,5 +61,8 @@ export const updateS3Policy = async (
 
     await s3.putBucketPolicy(putParams).promise();
     console.log(`Access to bucket '${bucketName}' is locked down.`);
-  } catch (error) {}
+  } catch (error) {
+    console.log("error", error);
+    throw error;
+  }
 };

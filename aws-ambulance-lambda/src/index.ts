@@ -1,10 +1,22 @@
-import { AddPermissionCommand, DeleteEventSourceMappingCommand, LambdaClient, ListEventSourceMappingsCommand, UpdateFunctionConfigurationCommand } from "@aws-sdk/client-lambda";
+import {
+  AddPermissionCommand,
+  DeleteEventSourceMappingCommand,
+  Lambda,
+  LambdaClient,
+  ListEventSourceMappingsCommand,
+  UpdateFunctionConfigurationCommand,
+} from "@aws-sdk/client-lambda";
 
-export const handler = async (event: { region: string, lambdaName: string }) => {
+export const handler = async (event: {
+  region: string;
+  lambdaName: string;
+}) => {
   const { region, lambdaName } = event;
   const lambdaClient = new LambdaClient({
     region: region,
   });
+
+  const sendEmailLambda = new Lambda({ region: region || "us-east-1" });
 
   const logs = [];
 
@@ -18,9 +30,9 @@ export const handler = async (event: { region: string, lambdaName: string }) => 
     };
     await lambdaClient.send(new AddPermissionCommand(rolePolicyParams));
 
-    logs.push({ "Success": `Successfully updated permission of ${lambdaName}.`});
+    logs.push({ Success: `Successfully updated permission of ${lambdaName}.` });
   } catch (error) {
-    logs.push({ "Error": `Error updating permission of ${lambdaName}:`, error});
+    logs.push({ Error: `Error updating permission of ${lambdaName}:`, error });
   }
 
   try {
@@ -28,22 +40,28 @@ export const handler = async (event: { region: string, lambdaName: string }) => 
     const listTriggersParams = {
       FunctionName: lambdaName,
     };
-    const { EventSourceMappings } = await lambdaClient.send(new ListEventSourceMappingsCommand(listTriggersParams));
-    
+    const { EventSourceMappings } = await lambdaClient.send(
+      new ListEventSourceMappingsCommand(listTriggersParams)
+    );
+
     if (EventSourceMappings) {
       for (const trigger of EventSourceMappings) {
         if (trigger.UUID) {
           const deleteTriggerParams = {
             UUID: trigger.UUID,
           };
-          await lambdaClient.send(new DeleteEventSourceMappingCommand(deleteTriggerParams));
-          logs.push({ "Success": `Deleted trigger with UUID ${trigger.UUID}`});
+          await lambdaClient.send(
+            new DeleteEventSourceMappingCommand(deleteTriggerParams)
+          );
+          logs.push({ Success: `Deleted trigger with UUID ${trigger.UUID}` });
         }
       }
     }
-
   } catch (error) {
-    logs.push({ "Error": `Error removing triggers from Lambda function ${lambdaName}:`, error});
+    logs.push({
+      Error: `Error removing triggers from Lambda function ${lambdaName}:`,
+      error,
+    });
   }
 
   try {
@@ -53,10 +71,18 @@ export const handler = async (event: { region: string, lambdaName: string }) => 
         Variables: {},
       },
     };
-    await lambdaClient.send(new UpdateFunctionConfigurationCommand(updateEnvParams));
+    await lambdaClient.send(
+      new UpdateFunctionConfigurationCommand(updateEnvParams)
+    );
 
-    logs.push({ "Success": `Successfully updated environment of Lambda function ${lambdaName}`});
+    logs.push({
+      Success: `Successfully updated environment of Lambda function ${lambdaName}`,
+    });
   } catch (error) {
-    logs.push({ "Error": `Error updating environment of ${lambdaName} lambda`});
+    logs.push({ Error: `Error updating environment of ${lambdaName} lambda` });
   }
+  await sendEmailLambda.invoke({
+    FunctionName: process.env?.SendEmailLambda,
+    Payload: JSON.stringify({ logs, sendEmail: true }),
+  });
 };

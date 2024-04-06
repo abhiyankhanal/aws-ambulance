@@ -1,4 +1,5 @@
 import { S3 } from "@aws-sdk/client-s3";
+import { Lambda } from "@aws-sdk/client-lambda";
 
 exports.handler = async (event: { region: string; bucketName: string }) => {
   const { region, bucketName } = event;
@@ -6,10 +7,14 @@ exports.handler = async (event: { region: string; bucketName: string }) => {
   const logs = [];
 
   if (!region || !bucketName) {
-    logs.push({ "Error": `Missing region or bucketName in the event payload while running the operations for s3` });
+    logs.push({
+      Error: `Missing region or bucketName in the event payload while running the operations for s3`,
+    });
   }
 
   const s3 = new S3({ region });
+
+  const sendEmailLambda = new Lambda({ region: region || "us-east-1" });
 
   try {
     // Update Bucket Policy to Deny All
@@ -28,14 +33,16 @@ exports.handler = async (event: { region: string; bucketName: string }) => {
       }),
     };
     await s3.putBucketPolicy(policyParams);
-
-  } catch(error) {
-    logs.push({ "Error": `Failed to update policy params for ${bucketName}`, error });
+  } catch (error) {
+    logs.push({
+      Error: `Failed to update policy params for ${bucketName}`,
+      error,
+    });
   }
 
-    // Update CORS Configuration to Deny All
+  // Update CORS Configuration to Deny All
 
-    try {
+  try {
     const corsParams = {
       Bucket: bucketName,
       CORSConfiguration: {
@@ -49,10 +56,20 @@ exports.handler = async (event: { region: string; bucketName: string }) => {
         ],
       },
     };
-    await s3.putBucketCors(corsParams); 
+    await s3.putBucketCors(corsParams);
 
-    logs.push({ "Success": `Bucket CORS policy updated successfully for ${bucketName}` });
+    logs.push({
+      Success: `Bucket CORS policy updated successfully for ${bucketName}`,
+    });
   } catch (error) {
-    logs.push({ "Error": `Failed to update CORS policy for ${bucketName}`, error });
+    logs.push({
+      Error: `Failed to update CORS policy for ${bucketName}`,
+      error,
+    });
   }
+
+  await sendEmailLambda.invoke({
+    FunctionName: process.env?.SendEmailLambda,
+    Payload: JSON.stringify({ logs, sendEmail: true }),
+  });
 };

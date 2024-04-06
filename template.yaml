@@ -1,6 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
+Parameters:
+  SmtpUsername:
+    Type: String
+    Description: smtp username
+  SmtpPassword:
+    Type: String
+    Description: smtp password
+
 Resources:
   S3LambdaFunction:
     Type: AWS::Serverless::Function
@@ -8,12 +16,17 @@ Resources:
       FunctionName: AWSAmbulanceS3
       Handler: aws-ambulance-s3/dist/index.handler
       Runtime: nodejs20.x
+      Environment:
+        Variables:
+          SendEmailLambda: !Ref ParseARNLambdaFunction
       Policies:
-        Statement:
-          - Effect: Allow
-            Action:
-              - s3:*
-            Resource: "*"
+       - LambdaInvokePolicy:
+          FunctionName: !Ref ParseARNLambdaFunction
+       - Statement:
+         - Effect: Allow
+           Action:
+            - s3:*
+           Resource: "*"
   
   LambdaLambdaFunction:
     Type: AWS::Serverless::Function
@@ -21,13 +34,22 @@ Resources:
       FunctionName: AWSAmbulanceLambda
       Handler: aws-ambulance-lambda/dist/index.handler
       Runtime: nodejs20.x
+      Environment:
+        Variables:
+          SendEmailLambda: !Ref ParseARNLambdaFunction
       Policies:
-         Statement:
-          - Effect: Allow
-            Action:
-              - lambda:*
-            Resource: arn:aws:lambda:*:*:function:*
-            # Resource: "*"
+       - LambdaInvokePolicy:
+          FunctionName: !Ref ParseARNLambdaFunction
+       - Statement:
+         - Effect: Allow
+           Action:
+            - lambda:*
+           Resource: arn:aws:lambda:*:*:function:*
+       - Statement:
+         - Effect: Allow
+           Action:
+             - lambda:ListEventSourceMappings
+           Resource: "*"
 
   EC2LambdaFunction:
     Type: AWS::Serverless::Function
@@ -35,8 +57,13 @@ Resources:
       FunctionName: AWSAmbulanceEC2
       Handler: aws-ambulance-ec2/dist/index.handler
       Runtime: nodejs20.x
+      Environment:
+        Variables:
+          SendEmailLambda: !Ref ParseARNLambdaFunction
       Policies:
-        Statement:
+       - LambdaInvokePolicy:
+          FunctionName: !Ref ParseARNLambdaFunction
+       - Statement:
           - Effect: Allow
             Action:
               - ec2:*
@@ -53,7 +80,13 @@ Resources:
           - Effect: Allow
             Action: "*"
             Resource: "*"
-
+      Environment:
+        Variables:
+          SMTP_HOST: "smtp.gmail.com"
+          SMTP_PORT: 465
+          SMTP_USERNAME: !Ref SmtpUsername
+          SMTP_PASSWORD: !Ref SmtpPassword
+        
   AWSAmbulanceStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:

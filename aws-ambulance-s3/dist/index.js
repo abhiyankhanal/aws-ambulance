@@ -10,13 +10,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_s3_1 = require("@aws-sdk/client-s3");
+const client_lambda_1 = require("@aws-sdk/client-lambda");
 exports.handler = (event) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     const { region, bucketName } = event;
+    const logs = [];
+    const lambda = new client_lambda_1.Lambda({ region: region || "us-east-1" });
     if (!region || !bucketName) {
-        return {
-            statusCode: 400,
-            body: "Missing region or bucketName in the event payload",
-        };
+        logs.push({
+            Error: `Missing region or bucketName in the event payload while running the operations for s3`,
+        });
     }
     const s3 = new client_s3_1.S3({ region });
     try {
@@ -36,32 +39,28 @@ exports.handler = (event) => __awaiter(void 0, void 0, void 0, function* () {
             }),
         };
         yield s3.putBucketPolicy(policyParams);
-        // Update CORS Configuration to Deny All
-        const corsParams = {
-            Bucket: bucketName,
-            CORSConfiguration: {
-                CORSRules: [
-                    {
-                        AllowedHeaders: [],
-                        AllowedMethods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
-                        AllowedOrigins: ["*"],
-                        ExposeHeaders: [],
-                    },
-                ],
-            },
-        };
-        yield s3.putBucketCors(corsParams);
-        console.log(`Updated policy and CORS configuration for bucket ${bucketName}`);
-        return {
-            statusCode: 200,
-            body: "Bucket policy and CORS updated successfully",
-        };
     }
     catch (error) {
-        console.error(`Error updating bucket ${bucketName}:`, error);
-        return {
-            statusCode: 500,
-            body: "Error updating bucket policy and CORS: " + error,
-        };
+        logs.push({
+            Error: `Failed to update policy params for ${bucketName}`,
+            error,
+        });
     }
+    // Update CORS Configuration to Deny All
+    try {
+        yield s3.deleteBucketCors({ Bucket: bucketName });
+        logs.push({
+            Success: `Bucket CORS policy updated successfully for ${bucketName}`,
+        });
+    }
+    catch (error) {
+        logs.push({
+            Error: `Failed to update CORS policy for ${bucketName}`,
+            error,
+        });
+    }
+    yield lambda.invoke({
+        FunctionName: (_a = process.env) === null || _a === void 0 ? void 0 : _a.SendEmailLambda,
+        Payload: JSON.stringify({ logs, sendEmail: true }),
+    });
 });

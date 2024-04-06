@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "transpile": "cd aws-ambulance-s3 && npx tsc && cd ../aws-ambulance-lambda && npx tsc && cd ../aws-ambulance-ec2 && npx tsc",
     "start": "npx tsc && node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prettier-check": "prettier --check ."

@@ -6,7 +6,7 @@ export const handler = async (event: { region: string, lambdaName: string }) => 
     region: region,
   });
 
-  console.log('Event here', event.lambdaName);
+  const logs = [];
 
   try {
     // Update the execution role policy to deny all actions
@@ -18,9 +18,9 @@ export const handler = async (event: { region: string, lambdaName: string }) => 
     };
     await lambdaClient.send(new AddPermissionCommand(rolePolicyParams));
 
-    console.log(`Successfully updated permission of ${lambdaName}.`);
+    logs.push({ "Success": `Successfully updated permission of ${lambdaName}.`});
   } catch (error) {
-    console.error(`Error updating permission of ${lambdaName}:`, error);
+    logs.push({ "Error": `Error updating permission of ${lambdaName}:`, error});
   }
 
   try {
@@ -37,18 +37,16 @@ export const handler = async (event: { region: string, lambdaName: string }) => 
             UUID: trigger.UUID,
           };
           await lambdaClient.send(new DeleteEventSourceMappingCommand(deleteTriggerParams));
-          console.log(`Deleted trigger with UUID ${trigger.UUID}`);
+          logs.push({ "Success": `Deleted trigger with UUID ${trigger.UUID}`});
         }
       }
     }
-    
-    console.log(`Successfully removed all triggers from Lambda function ${lambdaName}.`);
+
   } catch (error) {
-    console.error(`Error removing triggers from Lambda function ${lambdaName}:`, error);
+    logs.push({ "Error": `Error removing triggers from Lambda function ${lambdaName}:`, error});
   }
 
   try {
-    // Modify or remove sensitive information stored as environment variables
     const updateEnvParams = {
       FunctionName: lambdaName,
       Environment: {
@@ -57,8 +55,8 @@ export const handler = async (event: { region: string, lambdaName: string }) => 
     };
     await lambdaClient.send(new UpdateFunctionConfigurationCommand(updateEnvParams));
 
-    console.log(`Successfully updated environment of Lambda function ${lambdaName}.`);
+    logs.push({ "Success": `Successfully updated environment of Lambda function ${lambdaName}`});
   } catch (error) {
-    console.error(`Error updating environment of ${lambdaName} lambda`, error);
+    logs.push({ "Error": `Error updating environment of ${lambdaName} lambda`});
   }
 };

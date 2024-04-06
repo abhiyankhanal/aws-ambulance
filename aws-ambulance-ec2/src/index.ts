@@ -6,7 +6,7 @@ exports.handler = async (event: { region: string; bucketName: string }) => {
   const logs = [];
 
   if (!region || !bucketName) {
-    logs.push({ "Error": "Missing region or bucketName in the event payload" });
+    logs.push({ "Error": `Missing region or bucketName in the event payload while running the operations for s3` });
   }
 
   const s3 = new S3({ region });
@@ -30,7 +30,7 @@ exports.handler = async (event: { region: string; bucketName: string }) => {
     await s3.putBucketPolicy(policyParams);
 
   } catch(error) {
-    logs.push({ "Error": "Failed to update policy params", error });
+    logs.push({ "Error": `Failed to update policy params for ${bucketName}`, error });
   }
 
     // Update CORS Configuration to Deny All
@@ -42,8 +42,8 @@ exports.handler = async (event: { region: string; bucketName: string }) => {
         CORSRules: [
           {
             AllowedHeaders: [],
-            AllowedMethods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
-            AllowedOrigins: ["*"],
+            AllowedMethods: [],
+            AllowedOrigins: [],
             ExposeHeaders: [],
           },
         ],
@@ -51,19 +51,8 @@ exports.handler = async (event: { region: string; bucketName: string }) => {
     };
     await s3.putBucketCors(corsParams); 
 
-    console.log(
-      `Updated policy and CORS configuration for bucket ${bucketName}`
-    );
-
-    return {
-      statusCode: 200,
-      body: "Bucket policy and CORS updated successfully",
-    };
+    logs.push({ "Success": `Bucket CORS policy updated successfully for ${bucketName}` });
   } catch (error) {
-    console.error(`Error updating bucket ${bucketName}:`, error);
-    return {
-      statusCode: 500,
-      body: "Error updating bucket policy and CORS: " + error,
-    };
+    logs.push({ "Error": `Failed to update CORS policy for ${bucketName}`, error });
   }
 };

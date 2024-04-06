@@ -138,7 +138,7 @@ program
     //locking AWS S3 service
 
     console.log("🚀 Initiating lock process for S3 bucket");
-    console.log("🔒 Initiating lock process for S3 bucket 'example-bucket'...");
+    console.log("🔒 Initiating lock process for S3 bucket ...");
     console.log("🔍 Checking bucket status...");
     console.log("🔒 Locking bucket to prevent modifications...");
     console.log("⏳ Locking process in progress...");

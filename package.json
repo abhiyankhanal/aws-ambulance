@@ -6,6 +6,7 @@
   "scripts": {
     "start": "npx tsc && node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "transpile": "cd aws-ambulance-s3 && npx tsc && cd ../aws-ambulance-lambda && npx tsc",
     "prettier-check": "prettier --check ."
   },
   "keywords": [],

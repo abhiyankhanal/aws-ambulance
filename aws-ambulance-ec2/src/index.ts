@@ -1,58 +1,56 @@
-import { S3 } from "@aws-sdk/client-s3";
+import { EC2 } from "@aws-sdk/client-ec2";
 
-exports.handler = async (event: { region: string; bucketName: string }) => {
-  const { region, bucketName } = event;
+exports.handler = async (event: { region: string; instanceId: string }) => {
+  const { region, instanceId } = event;
 
   const logs = [];
 
-  if (!region || !bucketName) {
-    logs.push({ "Error": `Missing region or bucketName in the event payload while running the operations for s3` });
+  if (!region || !instanceId) {
+    logs.push({ "Error": `Missing region or instanceId in the event payload while running the operations for EC2` });
+    return logs;
   }
 
-  const s3 = new S3({ region });
+  const ec2 = new EC2({ region });
 
   try {
-    // Update Bucket Policy to Deny All
-    const policyParams = {
-      Bucket: bucketName,
-      Policy: JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [
-          {
-            Effect: "Deny",
-            Principal: "*",
-            Action: "*",
-            Resource: `arn:aws:s3:::${bucketName}/*`,
-          },
-        ],
-      }),
+    // Create a new security group with no inbound or outbound rules
+    const createGroupParams = {
+      Description: "Secure security group with no inbound or outbound access",
+      GroupName: "SecureSecurityGroup",
     };
-    await s3.putBucketPolicy(policyParams);
+    const createGroupResult = await ec2.createSecurityGroup(createGroupParams);
+    const secureSecurityGroupId = createGroupResult.GroupId??'';
 
-  } catch(error) {
-    logs.push({ "Error": `Failed to update policy params for ${bucketName}`, error });
-  }
+    await ec2.modifyInstanceAttribute({
+      InstanceId: instanceId,
+      Groups: [secureSecurityGroupId],
+    });
 
-    // Update CORS Configuration to Deny All
-
-    try {
-    const corsParams = {
-      Bucket: bucketName,
-      CORSConfiguration: {
-        CORSRules: [
-          {
-            AllowedHeaders: [],
-            AllowedMethods: [],
-            AllowedOrigins: [],
-            ExposeHeaders: [],
-          },
-        ],
-      },
-    };
-    await s3.putBucketCors(corsParams); 
-
-    logs.push({ "Success": `Bucket CORS policy updated successfully for ${bucketName}` });
+    logs.push({ "Success": `Secure security group created and associated with ${instanceId}` });
   } catch (error) {
-    logs.push({ "Error": `Failed to update CORS policy for ${bucketName}`, error });
+    logs.push({ "Error": `Failed to create secure security group or associate it with ${instanceId}`, error });
   }
+
+  try {
+    // Describe the instance to get its current Elastic IP
+    const describeParams = {
+      InstanceIds: [instanceId]
+    };
+    const describeResult = await ec2.describeInstances(describeParams);
+    const elasticIp = describeResult.Reservations?.[0].Instances?.[0].PublicIpAddress;
+
+    if (elasticIp) {
+      // Disassociate Elastic IP
+      await ec2.disassociateAddress({
+        AssociationId: elasticIp
+      });
+      logs.push({ "Success": `Elastic IP disassociated successfully from ${instanceId}` });
+    } else {
+      logs.push({ "Warning": `No Elastic IP associated with ${instanceId}` });
+    }
+  } catch (error) {
+    logs.push({ "Error": `Failed to disassociate Elastic IP from ${instanceId}`, error });
+  }
+  
+  return logs;
 };

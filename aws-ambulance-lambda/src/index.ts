@@ -89,7 +89,7 @@ export const handler = async (event: {region:string, lambdaName: string }, actio
       };
 
       const putObjectParams = {
-        Bucket: "YOUR_S3_BUCKET_NAME",
+        Bucket: 'lambda-state',
         Key: `${lambdaName}_lock_state.json`,
         Body: JSON.stringify(currentState),
       };
@@ -119,7 +119,7 @@ export const handler = async (event: {region:string, lambdaName: string }, actio
   const getStateFromS3 = async () => {
     try {
       const getObjectParams = {
-        Bucket: "YOUR_S3_BUCKET_NAME",
+        Bucket: 'lambda-state',
         Key: `${lambdaName}_lock_state.json`,
       };
       const data = await s3Client.send(new GetObjectCommand(getObjectParams));

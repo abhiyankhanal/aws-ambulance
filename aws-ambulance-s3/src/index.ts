@@ -1,6 +1,16 @@
 import { S3 } from "@aws-sdk/client-s3";
+import {
+  getCurrentBucketPolicy,
+  getLastS3PolicyFromState,
+  saveCurrentPolicyToS3,
+  updateS3Policy,
+} from "./utils";
 
-exports.handler = async (event: { region: string, bucketName: string} ) => {
+exports.handler = async (event: {
+  region: string;
+  bucketName: string;
+  actionType: "lock" | "unlock";
+}) => {
   const { region, bucketName } = event;
 
   if (!region || !bucketName) {
@@ -12,53 +22,37 @@ exports.handler = async (event: { region: string, bucketName: string} ) => {
 
   const s3 = new S3({ region });
 
-  try {
-    // Update Bucket Policy to Deny All
-    const policyParams = {
-      Bucket: bucketName,
-      Policy: JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [
-          {
-            Effect: "Deny",
-            Principal: "*",
-            Action: "*",
-            Resource: `arn:aws:s3:::${bucketName}/*`,
-          },
-        ],
-      }),
-    };
-    await s3.putBucketPolicy(policyParams);
-
-    // Update CORS Configuration to Deny All
-    const corsParams = {
-      Bucket: bucketName,
-      CORSConfiguration: {
-        CORSRules: [
-          {
-            AllowedHeaders: [],
-            AllowedMethods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
-            AllowedOrigins: ["*"],
-            ExposeHeaders: [],
-          },
-        ],
+  if (event.actionType === "lock") {
+    await updateS3Policy(
+      s3,
+      bucketName,
+      {
+        Effect: "Deny",
+        Principal: "*",
+        Action: "*",
+        Resource: `arn:aws:s3:::${bucketName}/*`,
       },
-    };
-    await s3.putBucketCors(corsParams);
-
-    console.log(
-      `Updated policy and CORS configuration for bucket ${bucketName}`
+      "lock"
     );
+  } else {
+    const getLastConfig = getLastS3PolicyFromState(s3);
+    if (getLastConfig) {
+      await updateS3Policy(s3, bucketName, getLastConfig, "unlock");
+    } else {
+      throw new Error("Last S3 config not found.");
+    }
+  }
 
+  try {
     return {
       statusCode: 200,
-      body: "Bucket policy and CORS updated successfully",
+      body: "Bucket policy successfully",
     };
   } catch (error) {
     console.error(`Error updating bucket ${bucketName}:`, error);
     return {
       statusCode: 500,
-      body: "Error updating bucket policy and CORS: " + error,
+      body: "Error updating bucket policy: " + error,
     };
   }
 };

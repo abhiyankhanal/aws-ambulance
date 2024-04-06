@@ -225,7 +225,7 @@ program
     .description("A simple CLI program")
     .option("-l, --list <message>", "Set the greeting message", "Hello")
     .action(function () { return __awaiter(void 0, void 0, void 0, function () {
-    var loadingInterval, list, s3Alerts, answer, awsCommand;
+    var loadingInterval, list, s3Alerts, answer, index, arn, awsCommand;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -234,9 +234,9 @@ program
             case 1:
                 list = _a.sent();
                 clearInterval(loadingInterval); // Stop the loading animation
-                s3Alerts = list.map(function (item, index) { return ({
-                    value: index,
-                    name: "[".concat(item.type, "]: \n Bucket ARN: ").concat(item.services[0].arn, " \n Title: ").concat(item.title, "\n Region: ").concat(item.region, "\n Severity: ").concat(item.severity, "\n Date: ").concat(item.createdAt, "\n"),
+                s3Alerts = list.map(function (item) { return ({
+                    value: item,
+                    name: "[".concat(item.type, "]: \n Title: ").concat(item.title, "\n Region: ").concat(item.region, "\n Severity: ").concat(item.severity, "\n Date: ").concat(item.createdAt, "\n"),
                 }); });
                 return [4 /*yield*/, inquirer_1.default.prompt([
                         {
@@ -254,12 +254,20 @@ program
                     ])];
             case 2:
                 answer = _a.sent();
+                index = answer["Action Plan"].findIndex(function (item) { return item !== undefined; });
+                console.log({ index: index });
+                arn = list[index].services[0].arn;
+                console.log({ arn: arn });
+                if (!arn) {
+                    console.log("❌ No ARN found for the selected bucket. Exiting...");
+                    return [2 /*return*/];
+                }
                 //locking AWS S3 service
                 console.log("🚀 Initiating lock process for S3 bucket");
                 console.log("🔒 Initiating lock process for S3 bucket ...");
                 console.log("🔍 Checking bucket status...");
                 console.log("🔒 Locking bucket to prevent modifications...");
-                console.log("⏳ Locking process in progress...");
+                console.log("\u23F3 Locking process in progress...");
                 awsCommand = "aws stepfunctions start-execution --state-machine-arn arn:aws:states:us-east-1:684378237653:stateMachine:AWSAmbulanceStartExecution-xdYEynYSiTX3 --input '{\"arns\": [\"arn:aws:s3:::testing-aws-ambulance-s3\", \"arn:aws:lambda:us-east-1:684378237653:function:testing-aws-ambulance-lambda\"]}'";
                 (0, child_process_1.exec)(awsCommand, function (error, stdout, stderr) {
                     if (error) {
@@ -273,3 +281,4 @@ program
     });
 }); });
 program.parse(process.argv);
+// const awsCommand = `aws stepfunctions start-execution --state-machine-arn arn:aws:states:us-east-1:684378237653:stateMachine:AWSAmbulanceStartExecution-xdYEynYSiTX3 --input '{"arns": ["${arn}"]}'`;

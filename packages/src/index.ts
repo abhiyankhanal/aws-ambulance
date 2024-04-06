@@ -145,14 +145,14 @@ program
     const list = await getListOfServices();
     clearInterval(loadingInterval); // Stop the loading animation
 
-    const s3Alerts = list.map((item, index) => ({
-      value: index,
-      name: `[${item.type}]: \n Bucket ARN: ${item.services[0].arn} \n Title: ${item.title}\n Region: ${item.region}\n Severity: ${item.severity}\n Date: ${item.createdAt}\n`,
+    const s3Alerts = list.map((item) => ({
+      value: item,
+      name: `[${item.type}]: \n Title: ${item.title}\n Region: ${item.region}\n Severity: ${item.severity}\n Date: ${item.createdAt}\n`,
     }));
 
     // Define an array of options to render as a table
 
-    const answer = await inquirer.prompt([
+    const answer: { [key: string]: string[] } = await inquirer.prompt([
       {
         type: "table",
         name: "Action Plan",
@@ -167,14 +167,25 @@ program
       },
     ]);
 
+    // find index of an item in the list which is not undefined
+    const index = answer["Action Plan"].findIndex((item) => item !== undefined);
+
+    const arn = list[index].services[0].arn;
+
+    if (!arn) {
+      console.log("❌ No ARN found for the selected bucket. Exiting...");
+      return;
+    }
+
     //locking AWS S3 service
 
     console.log("🚀 Initiating lock process for S3 bucket");
-    console.log("🔒 Initiating lock process for S3 bucket ...");
     console.log("🔍 Checking bucket status...");
     console.log("🔒 Locking bucket to prevent modifications...");
-    console.log("⏳ Locking process in progress...");
+    console.log(`⏳ Locking process in progress...`);
+
     const awsCommand = `aws stepfunctions start-execution --state-machine-arn arn:aws:states:us-east-1:684378237653:stateMachine:AWSAmbulanceStartExecution-xdYEynYSiTX3 --input '{"arns": ["arn:aws:s3:::testing-aws-ambulance-s3", "arn:aws:lambda:us-east-1:684378237653:function:testing-aws-ambulance-lambda"]}'`;
+
     exec(awsCommand, (error: any, stdout: any, stderr: any) => {
       if (error) {
         console.log(`Command output: ${stdout}`);
@@ -187,3 +198,5 @@ program
   });
 
 program.parse(process.argv);
+
+// const awsCommand = `aws stepfunctions start-execution --state-machine-arn arn:aws:states:us-east-1:684378237653:stateMachine:AWSAmbulanceStartExecution-xdYEynYSiTX3 --input '{"arns": ["${arn}"]}'`;

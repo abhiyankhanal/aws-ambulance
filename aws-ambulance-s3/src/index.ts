@@ -1,10 +1,5 @@
 import { S3 } from "@aws-sdk/client-s3";
-import {
-  getCurrentBucketPolicy,
-  getLastS3PolicyFromState,
-  saveCurrentPolicyToS3,
-  updateS3Policy,
-} from "./utils";
+import { getLastS3PolicyFromState, updateS3Policy } from "./utils";
 
 exports.handler = async (event: {
   region: string;
@@ -13,11 +8,12 @@ exports.handler = async (event: {
 }) => {
   const { region, bucketName } = event;
 
+  const logs = [];
+
   if (!region || !bucketName) {
-    return {
-      statusCode: 400,
-      body: "Missing region or bucketName in the event payload",
-    };
+    logs.push({
+      Error: `Missing region or bucketName in the event payload while running the operations for s3`,
+    });
   }
 
   const s3 = new S3({ region });
@@ -27,10 +23,21 @@ exports.handler = async (event: {
       s3,
       bucketName,
       {
-        Effect: "Deny",
-        Principal: "*",
-        Action: "*",
-        Resource: `arn:aws:s3:::${bucketName}/*`,
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "DenyPublicAccess",
+            Effect: "Deny",
+            Principal: "*",
+            Action: "s3:GetObject",
+            Resource: `arn:aws:s3:::${bucketName}/*`,
+            Condition: {
+              Bool: {
+                "aws:SecureTransport": "false",
+              },
+            },
+          },
+        ],
       },
       "lock"
     );

@@ -1,0 +1,2 @@
+### Short Description
+- Created a tool which would be helpful in the post disaster if there is an attack in aws resources. To start with it has dedicated lambda for s3, and lambda which will take necessary steps to isolate the effected resources. On top we have step-function which will trigger the lambdas for isolation process. It will save the time of the manual isolation and possible blunder in the panic situation.
